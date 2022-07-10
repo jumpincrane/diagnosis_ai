@@ -7,6 +7,8 @@ __pycache__/
 *.so
 #datasets
 datasets/
+#config
+config/secret.json
 # Distribution / packaging
 .Python
 build/
