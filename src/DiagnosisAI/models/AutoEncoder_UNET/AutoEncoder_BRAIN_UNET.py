@@ -138,13 +138,14 @@ class UNet(nn.Module):
         self.out_channels = out_channels
         self.n_filters = n_filters
 
-        self.encoder = Encoder(self.in_channels, self.n_filters)
-        self.decoder = Decoder(self.out_channels, self.n_filters)
+        self.encoder = Encoder(self.in_channels, self.n_filters, batchnorm=True)
+        self.decoder = Decoder(self.out_channels, self.n_filters, batchnorm=True)
 
         self.last_layer = nn.Conv2d(self.n_filters * 1, self.out_channels, kernel_size=1)
     def forward(self, x):
         encFeatures = self.encoder(x)
         output = self.decoder(encFeatures)
         output = self.last_layer(output)
+        
 
         return output

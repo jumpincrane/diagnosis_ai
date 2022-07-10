@@ -8,6 +8,8 @@ __pycache__/
 #datasets
 datasets/
 #config
+#neptune
+examples/.neptune
 config/secret.json
 # Distribution / packaging
 .Python
