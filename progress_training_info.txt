@@ -1,0 +1,5 @@
+resnet34, unet segmentation models pytorch, in_channels=4, out_channels=1, binary segmentation, bcewithlogistloss
+
+
+DODAĆ METRYKI
+PREPROCESS MOZGOW NA OBSZARY

@@ -5,12 +5,15 @@ __pycache__/
 
 # C extensions
 *.so
+*.ckpt
 #datasets
 datasets/
 #config
 #neptune
 examples/.neptune
 config/secret.json
+.neptune
+
 # Distribution / packaging
 .Python
 build/
