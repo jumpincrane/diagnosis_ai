@@ -216,7 +216,7 @@ class ResNet(nn.Module):
         return x
 
 
-def generate_model(model_depth, **kwargs):
+def generate_model(model_depth, n_classes, **kwargs):
     assert model_depth in [10, 18, 34, 50, 101, 152, 200]
 
     if model_depth == 10:
@@ -233,5 +233,7 @@ def generate_model(model_depth, **kwargs):
         model = ResNet(Bottleneck, [3, 8, 36, 3], get_inplanes(), **kwargs)
     elif model_depth == 200:
         model = ResNet(Bottleneck, [3, 24, 36, 3], get_inplanes(), **kwargs)
+    
+    model.fc = nn.Linear(in_features=model.fc.in_features, out_features=n_classes, bias=True)
 
     return model

@@ -49,7 +49,10 @@ def calculate_type_errors(pred: t.Tensor, target: t.Tensor, mode: str = 'segment
 
     elif mode == "classif_multiclass":
         # input shape, vectors [B, ], Number of classes define the highest number in targets of whole dataset f.e. target= [0, 3, 2, 1, 10], number of classes is 10+1=11
-        conf_matrix_class = stat_scores(pred.type(t.int32), target.type(t.int32), multiclass=True, mdmc_reduce='samplewise', reduce='macro', num_classes=num_classes)
+        conf_matrix_class = stat_scores(pred.type(t.int32), target.type(t.int32),
+                                        multiclass=True, mdmc_reduce='samplewise',
+                                        reduce='macro', num_classes=num_classes)
+                                        
         tp, fp, tn, fn = __get_conf_atribs__(conf_matrix_class, num_classes)
 
     else:
