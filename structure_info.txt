@@ -1,3 +1,4 @@
 models -> neural networks, raw
 lightining_modules -> wrapped neural networks in lightining lightining_modules
-datasets_torch -> 
+datasets_torch -> loading imgs to dataset torch and loader
+examples -> datasets info
