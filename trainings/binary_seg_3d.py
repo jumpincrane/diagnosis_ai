@@ -7,21 +7,23 @@ import os
 import time
 from sklearn.model_selection import train_test_split
 from pathlib import Path
+from tqdm import tqdm
 import pandas as pd
 from DiagnosisAI.datasets_torch.brain_3d_dataset import Brain3DDataset
 from DiagnosisAI.models.Unet3D import Unet3d
+from DiagnosisAI.models.Unet3D_fromgit import UNet
 
 
 # ======== PARAMS ========
-checkpoint_path = "./checkpoints/seg_binary_3d/resnet34enc/"
-model_state_path = "./model_states/seg_binary_3d/resnet34enc/"
-log_path = "./logs/seg_binary_3d/resnet34enc/"
+checkpoint_path = "./checkpoints/seg_binary_3d/unet3d_fromgit_t1ce/"
+model_state_path = "./model_states/seg_binary_3d/unet3d_fromgit_t1ce/"
+log_path = "./logs/seg_binary_3d/unet3d_fromgit_t1ce/"
 dataset_root_path = "../datasets/brain/Brats2021_training_df/"
-batch_size = 4
+batch_size = 2
 num_workers = 4
 train_size = 0.7
 seed = 42
-device = t.device('cpu')
+device = t.device('cuda')
 
 # ========CHECK DIR EXISTS ==========
 if not os.path.exists(checkpoint_path):
@@ -47,9 +49,9 @@ val_names, test_names = train_test_split(val_names, test_size=0.5, random_state=
 
 # ======== LOAD DATA ===========
 print("Loading datasets")
-train_dataset = Brain3DDataset(train_names)
-val_dataset = Brain3DDataset(val_names)
-test_dataset = Brain3DDataset(test_names)
+train_dataset = Brain3DDataset(train_names, t1ce=True)
+val_dataset = Brain3DDataset(val_names, t1ce=True)
+test_dataset = Brain3DDataset(test_names, t1ce=True)
 
 train_loader = t.utils.data.DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers)
 val_loader = t.utils.data.DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers)
@@ -61,7 +63,7 @@ print(f"Input img: {img.shape},  Label: {label.shape}")
 
 
 # ========== MODEL ================
-network = Unet3d(in_channels=4, out_channels=1).to(device)
+network = UNet(num_channels=1, out_channels=1, residual='pool').to(device)
 # ======= SET OPTIMIZER LOSS FUNC ========
 optimizer = t.optim.AdamW(network.parameters(), lr=3e-4)
 criterion = nn.BCEWithLogitsLoss()
@@ -75,7 +77,7 @@ precision_epoch = []
 
 # ==== TRAINING AND VALID ========
 start_time = time.time()
-for epoch in range(3):  # loop over the dataset multiple times
+for epoch in range(60):  # loop over the dataset multiple times
     network.train()
     train_loss = 0.0
     valid_loss = 0.0
@@ -84,7 +86,7 @@ for epoch in range(3):  # loop over the dataset multiple times
     epoch_tn = 0
     epoch_fn = 0
 
-    for i, batch in enumerate(train_loader, 0):
+    for i, batch in enumerate(tqdm(train_loader), 0):
         inputs, labels = batch
         inputs = inputs.to(device)
         labels = labels.to(device)
@@ -106,6 +108,10 @@ for epoch in range(3):  # loop over the dataset multiple times
         epoch_fn += fn
         train_loss += loss.item()
 
+    print("Saving model state per epoch ...")
+    t.save(network.state_dict(), model_state_path + f"model_state")
+    t.save(optimizer.state_dict(), checkpoint_path + f"optimizer_adam")
+
     network.eval()
     for j, batch in enumerate(val_loader, 0):    
         inputs, labels = batch
@@ -125,7 +131,7 @@ for epoch in range(3):  # loop over the dataset multiple times
     train_losses_epoch.append(train_loss / (i + 1))
     val_losses_epoch.append(valid_loss / (j + 1))
     recall_epoch.append(recall.item())
-    precision_epoch.append(precision_epoch.item())
+    precision_epoch.append(precision.item())
     f1_score_epoch.append(f1_score.item())
     acc_epoch.append(acc.item())
 
