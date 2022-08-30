@@ -9,11 +9,12 @@ from albumentations.pytorch.transforms import ToTensorV2
 from albumentations.pytorch.transforms import ToTensor
 
 class BrainSlicesDataset(t.utils.data.Dataset):
-    def __init__(self, file_names: list, binary_mask: bool = True):
+    def __init__(self, file_names: list, binary_mask: bool = True, t1ce_only: bool = False):
         self.root_path = Path("/mnt/e/mgr/datasets/brain/train_images_max_area")
         self.file_names = file_names
         self.image_size = (240, 240)
         self.binary_mask = binary_mask
+        self.t1ce_only = t1ce_only
         self.padded_image_size = (
                                     math.ceil(self.image_size[0] / 32) * 32,
                                     math.ceil(self.image_size[1] / 32) * 32
@@ -34,6 +35,9 @@ class BrainSlicesDataset(t.utils.data.Dataset):
 
         # stack them into 4 channel input
         img = np.stack([img_flair, img_t1, img_t1ce, img_t2], axis=2)
+
+        if self.t1ce_only:
+            img = img_t1ce[..., np.newaxis]
 
         # extract segment mask, 1 channel with 4 classes
         label = slice_data['seg']
