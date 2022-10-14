@@ -1,6 +1,0 @@
-ogolny model 3d na organmniscie testy dla 500 epok i zapisywanie metryk dla
-- resnet10
-- resnet18
-- resnet34
-- resnet50
-- resnet152
