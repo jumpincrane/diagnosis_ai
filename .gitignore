@@ -7,7 +7,8 @@ __pycache__/
 *.so
 *.ckpt
 
-
+# my folders
+full_datasets/
 
 # Distribution / packaging
 .Python
