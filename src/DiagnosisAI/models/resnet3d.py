@@ -5,15 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-"""
-https://github.com/kenshohara/3D-ResNets-PyTorch/blob/master/models/resnet.py
-"""
 
-def get_inplanes():
-    return [64, 128, 256, 512]
-
-
-def conv3x3x3(in_planes, out_planes, stride=1):
+def _conv3x3x3(in_planes, out_planes, stride=1):
     return nn.Conv3d(in_planes,
                      out_planes,
                      kernel_size=3,
@@ -22,7 +15,7 @@ def conv3x3x3(in_planes, out_planes, stride=1):
                      bias=False)
 
 
-def conv1x1x1(in_planes, out_planes, stride=1):
+def _conv1x1x1(in_planes, out_planes, stride=1):
     return nn.Conv3d(in_planes,
                      out_planes,
                      kernel_size=1,
@@ -36,10 +29,10 @@ class BasicBlock(nn.Module):
     def __init__(self, in_planes, planes, stride=1, downsample=None):
         super().__init__()
 
-        self.conv1 = conv3x3x3(in_planes, planes, stride)
+        self.conv1 = _conv3x3x3(in_planes, planes, stride)
         self.bn1 = nn.BatchNorm3d(planes)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3x3(planes, planes)
+        self.conv2 = _conv3x3x3(planes, planes)
         self.bn2 = nn.BatchNorm3d(planes)
         self.downsample = downsample
         self.stride = stride
@@ -69,11 +62,11 @@ class Bottleneck(nn.Module):
     def __init__(self, in_planes, planes, stride=1, downsample=None):
         super().__init__()
 
-        self.conv1 = conv1x1x1(in_planes, planes)
+        self.conv1 = _conv1x1x1(in_planes, planes)
         self.bn1 = nn.BatchNorm3d(planes)
-        self.conv2 = conv3x3x3(planes, planes, stride)
+        self.conv2 = _conv3x3x3(planes, planes, stride)
         self.bn2 = nn.BatchNorm3d(planes)
-        self.conv3 = conv1x1x1(planes, planes * self.expansion)
+        self.conv3 = _conv1x1x1(planes, planes * self.expansion)
         self.bn3 = nn.BatchNorm3d(planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -102,57 +95,28 @@ class Bottleneck(nn.Module):
         return out
 
 
-
-class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels) -> None:
-        super().__init__()
-
-        self.conv1 = nn.Conv3d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm3d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.relu = nn.ReLU(inplace=True)
-        self.attention1 = nn.Identity()
-        self.conv2 = nn.Conv3d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm3d(num_features=out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.attention2 = nn.Identity()
-
-    def forward(self, x, skip=None):
-        x = F.interpolate(x, scale_factor=(2, 2, 2), mode="nearest")
-        if skip is not None:
-            x = torch.cat([x, skip], dim=1)
-            x = self.attention1(x)
-
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.relu(x)
-        x = self.attention2(x)
-
-        return x
-
-
-class Encoder(nn.Module):
+class ResNet(nn.Module):
 
     def __init__(self,
                  block,
                  layers,
                  block_inplanes,
-                 n_input_channels=1,
+                 n_input_channels=3,
                  conv1_t_size=7,
                  conv1_t_stride=1,
                  no_max_pool=False,
                  shortcut_type='B',
                  widen_factor=1.0,
-                 n_classes=400):
-        super(Encoder, self).__init__()
+                 num_classes=400,
+                 as_encoder=False):
+        super().__init__()
 
         block_inplanes = [int(x * widen_factor) for x in block_inplanes]
 
         self.in_planes = block_inplanes[0]
         self.no_max_pool = no_max_pool
-        self._depth = 5
+        self.as_encoder = as_encoder
+
         self.conv1 = nn.Conv3d(n_input_channels,
                                self.in_planes,
                                kernel_size=(conv1_t_size, 7, 7),
@@ -161,12 +125,11 @@ class Encoder(nn.Module):
                                bias=False)
         self.bn1 = nn.BatchNorm3d(self.in_planes)
         self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=(2, 2, 2), padding=1)
-
+        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
 
         self.layer0 = nn.Sequential(self.conv1, self.bn1, self.relu)
         self.layer1 = nn.Sequential(self.maxpool, self._make_layer(block, block_inplanes[0], layers[0],
-                                       shortcut_type))
+                                                                   shortcut_type))
         self.layer2 = self._make_layer(block,
                                        block_inplanes[1],
                                        layers[1],
@@ -183,9 +146,11 @@ class Encoder(nn.Module):
                                        shortcut_type,
                                        stride=2)
 
+        if not self.as_encoder:
+            self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
+            self.fc = nn.Linear(block_inplanes[3] * block.expansion, num_classes, bias=True)
 
         for m in self.modules():
-   
             if isinstance(m, nn.Conv3d):
                 nn.init.kaiming_normal_(m.weight,
                                         mode='fan_out',
@@ -193,15 +158,6 @@ class Encoder(nn.Module):
             elif isinstance(m, nn.BatchNorm3d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
-
-        self.encs_layers = [
-            nn.Identity(),
-            self.layer0,
-            self.layer1,
-            self.layer2,
-            self.layer3,
-            self.layer4,
-        ]
 
     def _downsample_basic_block(self, x, planes, stride):
         out = F.avg_pool3d(x, kernel_size=1, stride=stride)
@@ -223,7 +179,7 @@ class Encoder(nn.Module):
                                      stride=stride)
             else:
                 downsample = nn.Sequential(
-                    conv1x1x1(self.in_planes, planes * block.expansion, stride),
+                    _conv1x1x1(self.in_planes, planes * block.expansion, stride),
                     nn.BatchNorm3d(planes * block.expansion))
 
         layers = []
@@ -239,80 +195,78 @@ class Encoder(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        features = []
-        for i in range(self._depth + 1):
-            x = self.encs_layers[i](x)
-            features.append(x)
+        if not self.as_encoder:
+            x = self.layer0(x)
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.layer4(x)
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
 
-        return features
+            return x
+        else:
+            x0 = nn.Identity()(x)
+            x1 = self.layer0(x0)
+            x2 = self.layer1(x1)
+            x3 = self.layer2(x2)
+            x4 = self.layer3(x3)
+            x5 = self.layer4(x4)
+
+            return [x0, x1, x2, x3, x4, x5]
 
 
-def generate_model(model_depth, **kwargs):
-    assert model_depth in [10, 18, 34, 50, 101, 152, 200]
+def resnet18_3d(**kwargs):
+    """
+    :param int n_input_channels: resnet input channels,
+    :param int num_classes: num classes in last fully connected layer
+    """
 
-    if model_depth == 10:
-        model = Encoder(BasicBlock, [1, 1, 1, 1], get_inplanes(), **kwargs)
-    elif model_depth == 18:
-        model = Encoder(BasicBlock, [2, 2, 2, 2], get_inplanes(), **kwargs)
-    elif model_depth == 34:
-        model = Encoder(BasicBlock, [3, 4, 6, 3], get_inplanes(), **kwargs)
-    elif model_depth == 50:
-        model = Encoder(Bottleneck, [3, 4, 6, 3], get_inplanes(), **kwargs)
-    elif model_depth == 101:
-        model = Encoder(Bottleneck, [3, 4, 23, 3], get_inplanes(), **kwargs)
-    elif model_depth == 152:
-        model = Encoder(Bottleneck, [3, 8, 36, 3], get_inplanes(), **kwargs)
-    elif model_depth == 200:
-        model = Encoder(Bottleneck, [3, 24, 36, 3], get_inplanes(), **kwargs)
-    
+    model = ResNet(BasicBlock, [2, 2, 2, 2], [64, 128, 256, 512], **kwargs)
 
     return model
 
 
-class Decoder(nn.Module):
-    def __init__(self) -> None:
-        super(Decoder, self).__init__()
+def resnet34_3d(**kwargs):
+    """
+    :param int n_input_channels: resnet input channels,
+    :param int num_classes: num classes in last fully connected layer
+    """
 
-        self.center = nn.Identity()
-        self._in_channels = [768, 384, 192, 128, 32]
-        self._out_channels = [256, 128, 64, 32, 16]
+    model = ResNet(BasicBlock, [3, 4, 6, 3], [64, 128, 256, 512], **kwargs)
 
-        self.decoderblocks = [DecoderBlock(in_channels=in_ch, out_channels=out_ch) for in_ch, out_ch in zip(self._in_channels, self._out_channels)]
-        self.blocks = nn.ModuleList(self.decoderblocks)
-
-
-    def forward(self, features):
-        features = features[1:]    # remove first skip with same spatial resolution
-        features = features[::-1]  # reverse channels to start from head of encoder
-        head = features[0]
-        skips = features[1:]
-
-        x = self.center(head)
-        for i, decoder_block in enumerate(self.blocks):
-            skip = skips[i] if i < len(skips) else None
-            x = decoder_block(x, skip)
-
-        return x
+    return model
 
 
+def resnet50_3d(**kwargs):
+    """
+    :param int n_input_channels: resnet input channels,
+    :param int num_classes: num classes in last fully connected layer
+    """
+
+    model = ResNet(BasicBlock, [3, 4, 6, 3], [64, 128, 256, 512], **kwargs)
+
+    return model
 
 
-class Unet3d(nn.Module):
-    def __init__(self, in_channels=4, out_channels=1):
-        super(Unet3d, self).__init__()
+def resnet101_3d(**kwargs):
+    """
+    :param int n_input_channels: resnet input channels,
+    :param int num_classes: num classes in last fully connected layer
+    """
 
-        self.enc = generate_model(34, n_input_channels=in_channels)
-        self.dec = Decoder()
-        self.final_conv = nn.Conv3d(16, out_channels, kernel_size=3, stride=1, padding=1)
-        self.id1 = nn.Identity()
-        self.id2 = nn.Identity()
+    model = ResNet(BasicBlock, [3, 4, 23, 3], [64, 128, 256, 512], **kwargs)
 
-    def forward(self, x):
-        enc_features = self.enc(x)
-        output = self.dec(enc_features)
-        output = self.final_conv(output)
-        output = self.id1(output)
-        output = self.id2(output)
+    return model
 
-        return output
 
+def resnet152_3d(**kwargs):
+    """
+    :param int n_input_channels: resnet input channels,
+    :param int num_classes: num classes in last fully connected layer
+    """
+
+    model = ResNet(BasicBlock, [3, 8, 36, 3], [64, 128, 256, 512], **kwargs)
+
+    return model
