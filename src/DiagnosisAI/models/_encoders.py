@@ -1,15 +1,17 @@
+from typing import Union, Any
+
 import torch
 import torch.nn as nn
 
 
-def _conv1(in_planes, planes, stride=1, mode="2D"):
+def _conv1(in_planes: int, planes: int, stride: int = 1, mode: str = "2D") -> Union[nn.Conv2d, nn.Conv3d]:
     if mode == "2D":
         return nn.Conv2d(in_planes, planes, kernel_size=1, stride=stride, bias=False)
     elif mode == "3D":
         return nn.Conv3d(in_planes, planes, kernel_size=1, stride=stride, bias=False)
 
 
-def _conv3(in_planes, planes, stride=1, mode="2D"):
+def _conv3(in_planes: int, planes: int, stride: int = 1, mode: str = "2D") -> Union[nn.Conv2d, nn.Conv3d]:
     if mode == "2D":
         return nn.Conv2d(in_channels=in_planes, out_channels=planes,
                          kernel_size=3, stride=stride, bias=False, padding=1)
@@ -18,14 +20,15 @@ def _conv3(in_planes, planes, stride=1, mode="2D"):
                          kernel_size=3, stride=stride, bias=False, padding=1)
 
 
-def _batch_norm(planes, mode="2D"):
+def _batch_norm(planes: int, mode: str = "2D") -> Union[nn.BatchNorm2d, nn.BatchNorm3d]:
     if mode == "2D":
         return nn.BatchNorm2d(planes)
     elif mode == "3D":
         return nn.BatchNorm3d(planes)
 
 
-def _max_pool(kernel_size=3, stride=2, padding=1, mode="2D"):
+def _max_pool(kernel_size: int = 3, stride: int = 2, padding: int = 1, mode: str = "2D") -> Union[nn.MaxPool2d,
+                                                                                                  nn.MaxPool3d]:
     if mode == "2D":
         return nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=padding)
     elif mode == "3D":
@@ -35,7 +38,8 @@ def _max_pool(kernel_size=3, stride=2, padding=1, mode="2D"):
 class _BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes: int, planes: int, stride: int = 1, downsample=None, mode="2D"):
+    def __init__(self, in_planes: int, planes: int, stride: int = 1, downsample: Union[nn.Module, None] = None,
+                 mode: str = "2D"):
         super().__init__()
         self.conv1 = _conv3(in_planes, planes, stride, mode)
         self.bn1 = _batch_norm(planes, mode)
@@ -45,7 +49,7 @@ class _BasicBlock(nn.Module):
         self.stride = stride
         self.downsample = downsample
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         residual = x
 
         out = self.conv1(x)
@@ -67,7 +71,8 @@ class _BasicBlock(nn.Module):
 class _Bottleneck(nn.Module):
     expansion: int = 4
 
-    def __init__(self, in_planes: int, planes: int, stride: int = 1, downsample=None, mode="2D") -> None:
+    def __init__(self, in_planes: int, planes: int, stride: int = 1, downsample: Union[nn.Module, None] = None,
+                 mode: str = "2D"):
         super().__init__()
 
         self.conv1 = _conv1(in_planes, planes, stride=1, mode=mode)
@@ -112,13 +117,13 @@ class ResNetEncoder(nn.Module):
     """
 
     def __init__(self,
-                 block,
-                 layers,
-                 block_inplanes,
-                 n_in_channels=3,
-                 mode="2D",
-                 conv1_t_size=7,
-                 return_all_layers=False):
+                 block: Union[_BasicBlock, _Bottleneck],
+                 layers: list[int],
+                 block_inplanes: list[int],
+                 n_in_channels: int = 3,
+                 mode: str = "2D",
+                 conv1_t_size: int = 7,
+                 return_all_layers: bool = False):
         super().__init__()
 
         self.in_planes = block_inplanes[0]
@@ -160,7 +165,8 @@ class ResNetEncoder(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block: _BasicBlock, planes, blocks, mode="2D", stride=1):
+    def _make_layer(self, block: Union[_BasicBlock, _Bottleneck],
+                    planes: int, blocks: int, mode: str = "2D", stride: int = 1) -> nn.Sequential:
         downsample = None
         if stride != 1 or self.in_planes != planes * block.expansion:
             downsample = nn.Sequential(
@@ -176,17 +182,13 @@ class ResNetEncoder(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, list[torch.Tensor]]:
         if not self.return_all_layers:
 
             x = self.layer0(x)
-
             x = self.layer1(x)
-
             x = self.layer2(x)
-
             x = self.layer3(x)
-
             x = self.layer4(x)
 
             return x
@@ -201,10 +203,13 @@ class ResNetEncoder(nn.Module):
             return [x0, x1, x2, x3, x4, x5]
 
 
-def resnet_3d(resnet_model: int, n_in_channels: int, mode="2D", **kwargs):
+def resnet_3d(resnet_model: int, n_in_channels: int, mode="2D", **kwargs) -> ResNetEncoder:
     """
-    :param int n_in_channels: resnet input channels,
-    :param str mode: "2D" or "3D"
+    :param int resnet_model: Depth of ResNet, choose from {18, 34, 50, 101, 152},
+    :param int n_in_channels: input channels,
+    :param str mode: 2D or 3D ResNet type.
+
+    :return ResNetEncoder.
     """
     if resnet_model == 18:
         model = ResNetEncoder(_BasicBlock, [2, 2, 2, 2], [64, 128, 256, 512], n_in_channels, mode, **kwargs)
