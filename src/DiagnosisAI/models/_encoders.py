@@ -156,6 +156,8 @@ class ResNetEncoder(nn.Module):
         self.layer3 = self._make_layer(block, block_inplanes[2], layers[2], mode, stride=2)
         self.layer4 = self._make_layer(block, block_inplanes[3], layers[3], mode, stride=2)
 
+        self.output_features = block.expansion * block_inplanes[-1]
+
         for m in self.modules():
             if isinstance(m, (nn.Conv2d, nn.Conv3d)):
                 nn.init.kaiming_normal_(m.weight,
