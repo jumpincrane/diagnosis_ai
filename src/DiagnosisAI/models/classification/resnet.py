@@ -3,7 +3,7 @@ from typing import Union
 import torch
 import torch.nn as nn
 
-from diagnosisai.models._encoders import resnet_3d
+from diagnosisai.models._encoders import resnet
 
 
 def _choose_avg_pool(mode: str) -> Union[nn.AdaptiveAvgPool2d, nn.AdaptiveAvgPool3d]:
@@ -35,7 +35,7 @@ class ResNet(nn.Module):
                  activ_func_mode: str = 'softmax'):
         super().__init__()
 
-        self.resnet = resnet_3d(resnet_depth, n_in_channels, mode)
+        self.resnet = resnet(resnet_depth, n_in_channels, mode)
         self.avg_pool = _choose_avg_pool(mode)
         self.fc = nn.Linear(self.resnet.output_features, num_classes)
         self.activ_func = _choose_activ_func(activ_func_mode)

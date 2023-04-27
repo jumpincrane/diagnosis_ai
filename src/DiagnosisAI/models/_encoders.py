@@ -205,7 +205,7 @@ class ResNetEncoder(nn.Module):
             return [x0, x1, x2, x3, x4, x5]
 
 
-def resnet_3d(resnet_model: int, n_in_channels: int, mode="2D", **kwargs) -> ResNetEncoder:
+def resnet(resnet_model: int, n_in_channels: int, mode="2D", **kwargs) -> ResNetEncoder:
     """
     :param int resnet_model: Depth of ResNet, choose from {18, 34, 50, 101, 152},
     :param int n_in_channels: input channels,
