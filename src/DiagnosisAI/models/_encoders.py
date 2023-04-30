@@ -120,7 +120,7 @@ class ResNetEncoder(nn.Module):
                  block: Union[_BasicBlock, _Bottleneck],
                  layers: list[int],
                  block_inplanes: list[int],
-                 n_in_channels: int = 3,
+                 in_channels: int = 3,
                  mode: str = "2D",
                  conv1_t_size: int = 7,
                  return_all_layers: bool = False):
@@ -130,14 +130,14 @@ class ResNetEncoder(nn.Module):
         self.return_all_layers = return_all_layers
 
         if mode == "2D":
-            self.conv1 = nn.Conv2d(n_in_channels,
+            self.conv1 = nn.Conv2d(in_channels,
                                    self.in_planes,
                                    kernel_size=(conv1_t_size, 7),
                                    stride=2,
                                    padding=(conv1_t_size // 2, 3),
                                    bias=False)
         elif mode == "3D":
-            self.conv1 = nn.Conv3d(n_in_channels,
+            self.conv1 = nn.Conv3d(in_channels,
                                    self.in_planes,
                                    kernel_size=(conv1_t_size, 7, 7),
                                    stride=2,
@@ -205,23 +205,30 @@ class ResNetEncoder(nn.Module):
             return [x0, x1, x2, x3, x4, x5]
 
 
-def resnet(resnet_model: int, n_in_channels: int, mode="2D", **kwargs) -> ResNetEncoder:
+def resnet_encoder(resnet_model: int, in_channels: int, mode: str = "2D",
+                   return_all_layers: bool = False, **kwargs) -> ResNetEncoder:
     """
     :param int resnet_model: Depth of ResNet, choose from {18, 34, 50, 101, 152},
-    :param int n_in_channels: input channels,
-    :param str mode: 2D or 3D ResNet type.
+    :param int in_channels: input channels,
+    :param str mode: 2D or 3D ResNet type,
+    :param bool return_all_layers: whether it should return a result from each layer.
 
     :return ResNetEncoder.
     """
     if resnet_model == 18:
-        model = ResNetEncoder(_BasicBlock, [2, 2, 2, 2], [64, 128, 256, 512], n_in_channels, mode, **kwargs)
+        model = ResNetEncoder(_BasicBlock, [2, 2, 2, 2], [64, 128, 256, 512],
+                              in_channels, mode, return_all_layers=return_all_layers, **kwargs)
     if resnet_model == 34:
-        model = ResNetEncoder(_BasicBlock, [3, 4, 6, 3], [64, 128, 256, 512], n_in_channels, mode, **kwargs)
+        model = ResNetEncoder(_BasicBlock, [3, 4, 6, 3], [64, 128, 256, 512],
+                              in_channels, mode, return_all_layers=return_all_layers, **kwargs)
     if resnet_model == 50:
-        model = ResNetEncoder(_Bottleneck, [3, 4, 6, 3], [64, 128, 256, 512], n_in_channels, mode, **kwargs)
+        model = ResNetEncoder(_Bottleneck, [3, 4, 6, 3], [64, 128, 256, 512],
+                              in_channels, mode, return_all_layers=return_all_layers, **kwargs)
     if resnet_model == 101:
-        model = ResNetEncoder(_Bottleneck, [3, 4, 23, 3], [64, 128, 256, 512], n_in_channels, mode, **kwargs)
+        model = ResNetEncoder(_Bottleneck, [3, 4, 23, 3], [64, 128, 256, 512],
+                              in_channels, mode, return_all_layers=return_all_layers, **kwargs)
     if resnet_model == 152:
-        model = ResNetEncoder(_Bottleneck, [3, 8, 36, 3], [64, 128, 256, 512], n_in_channels, mode, **kwargs)
+        model = ResNetEncoder(_Bottleneck, [3, 8, 36, 3], [64, 128, 256, 512],
+                              in_channels, mode, return_all_layers=return_all_layers, **kwargs)
 
     return model

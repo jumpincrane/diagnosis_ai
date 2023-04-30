@@ -3,7 +3,7 @@ from typing import Union
 import torch
 import torch.nn as nn
 
-from diagnosisai.models._encoders import resnet
+from diagnosisai.models._encoders import resnet_encoder
 
 
 def _choose_avg_pool(mode: str) -> Union[nn.AdaptiveAvgPool2d, nn.AdaptiveAvgPool3d]:
@@ -31,11 +31,25 @@ def _choose_activ_func(activ_func_mode: str) -> Union[nn.Sigmoid, nn.Softmax, nn
 
 
 class ResNet(nn.Module):
-    def __init__(self, num_classes: int, resnet_depth: int = 34, n_in_channels: int = 3, mode: str = "2D",
+    """
+    ResNet model where are:
+    - encoder,
+    - average pooling,
+    - fully connected layer,
+    - activaction function.
+
+    :param int num_classes: number of classes to predict,
+    :param int resnet_model: Depth of ResNet, choose from {18, 34, 50, 101, 152},
+    :param int in_channels: number of input channels to the first layer,
+    :param str mode: 2D or 3D ResNet type,
+    :param str activ_func_mode: selection of the activation function on the result from {sigmoid, softmax, none}.
+    """
+
+    def __init__(self, num_classes: int, resnet_depth: int = 34, in_channels: int = 3, mode: str = "2D",
                  activ_func_mode: str = 'softmax'):
         super().__init__()
 
-        self.resnet = resnet(resnet_depth, n_in_channels, mode)
+        self.resnet = resnet_encoder(resnet_depth, in_channels, mode)
         self.avg_pool = _choose_avg_pool(mode)
         self.fc = nn.Linear(self.resnet.output_features, num_classes)
         self.activ_func = _choose_activ_func(activ_func_mode)
