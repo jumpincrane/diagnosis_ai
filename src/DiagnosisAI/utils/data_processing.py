@@ -13,11 +13,7 @@ def get_plane_where_tumor_is_thelargest(brain_scan_label: torch.Tensor):
     From given 2D planes stacked into 3D brain scan, get index of surface where tumor is the largest.
     """
 
-    slices_areas = torch.zeros(brain_scan_label.shape[-1])
-    for i in range(brain_scan_label.shape[-1]):
-        slices_areas[i] = brain_scan_label[:, :, i].count_nonzero()
-
-    return slices_areas.argmax()
+    return brain_scan_label.count_nonzero(dim=(0, 1)).argmax().item()
 
 
 def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
