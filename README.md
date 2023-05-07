@@ -51,6 +51,6 @@ import diagnosisai
 ```
 
 # Types of diagnosis supported
-At the moment, only data in the form of images is supported, which is converted to tensors and also stored in tensors thanks to the pickle module.
+At the moment, only data in the form of images is supported or `nii.gz` format when brain scans are provided.
 
 
