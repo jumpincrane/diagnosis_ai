@@ -21,11 +21,11 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
     For the given folder where there are 3D scans (in nii.gz format) that consist of superimposed planes.
     For each scan extract the plane where the tumour is largest and save these scans to folder.
     """
-
     path = Path(segments_folders)
     path_save = Path(save_folder)
 
     for dir in tqdm(path.iterdir()):
+
         path_dir = path_save / dir.name
         try:
             path_dir.mkdir(parents=True, exist_ok=False)
@@ -55,10 +55,10 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
             gc.collect()
 
         largest_tumor_slice = get_plane_where_tumor_is_thelargest(case['seg'])
-        for img in case:
-            case[img] = case[img][:, :, largest_tumor_slice]
 
-        pickle.dump(case, open(path_dir / f'{dir.name}_slices_dict.pickle', 'wb'))
+        for scan_type in case:
+            case[scan_type] = case[scan_type][:, :, largest_tumor_slice]
+            torch.save(case[scan_type], path_dir / f'{dir.name}_{scan_type}.pickle')
 
         del case
         gc.collect()
