@@ -20,7 +20,6 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
     """
     For the given folder where there are 3D scans (in nii.gz format) that consist of superimposed planes.
     For each scan extract the plane where the tumour is largest and save these scans to folder.
-
     """
 
     path = Path(segments_folders)
@@ -40,6 +39,7 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
         for file in dir.iterdir():
             sample = nib.load(file).get_fdata().copy()
             sample = torch.from_numpy(sample)
+
             if 'flair' in file.name:
                 case['flair'] = sample
             elif 't1ce' in file.name:
@@ -54,9 +54,9 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
             del sample
             gc.collect()
 
-        max_area_idx = get_plane_where_tumor_is_thelargest(case['seg'])
+        largest_tumor_slice = get_plane_where_tumor_is_thelargest(case['seg'])
         for img in case:
-            case[img] = case[img][:, :, max_area_idx]
+            case[img] = case[img][:, :, largest_tumor_slice]
 
         pickle.dump(case, open(path_dir / f'{dir.name}_slices_dict.pickle', 'wb'))
 
