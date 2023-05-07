@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-def get_plane_where_tumor_is_thelargest(brain_scan_label: torch.Tensor):
+def get_plane_where_tumor_is_thelargest(brain_scan_label: torch.Tensor) -> int:
     """
     From given 2D planes stacked into 3D brain scan, get index of surface where tumor is the largest.
     """
@@ -30,8 +30,7 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
     path = Path(segments_folders)
     path_save = Path(save_folder)
 
-    for dir in tqdm.tqdm(path.iterdir()):
-        case = {}
+    for dir in tqdm(path.iterdir()):
         path_dir = path_save / dir.name
         try:
             path_dir.mkdir(parents=True, exist_ok=False)
@@ -40,8 +39,11 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
         else:
             print("Folder was created")
 
+        case = {}
+
         for file in dir.iterdir():
             sample = nib.load(file).get_fdata().copy()
+            sample = torch.from_numpy(sample)
             if 'flair' in file.name:
                 case['flair'] = sample
             elif 't1ce' in file.name:
@@ -64,3 +66,13 @@ def get_thelargest_tumor_planes_in_dir(segments_folders: str, save_folder: str):
 
         del case
         gc.collect()
+
+
+# def crop_mask_to_segment(output, label):
+#     idx_x = np.where(label == 1)[0]
+#     idx_y = np.where(label == 1)[1]
+
+#     masked_label = torch.Tensor(label[idx_x, idx_y]).type(torch.int32)
+#     masked_output = torch.Tensor(output[idx_x, idx_y])
+
+#     return masked_output, masked_label

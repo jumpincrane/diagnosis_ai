@@ -80,12 +80,3 @@ def calc_metrics(tp, fp, tn, fn):
 
     return recall, precision, acc, f1_score
 
-
-def crop_mask_to_segment(output, label):
-    idx_x = np.where(label == 1)[0]
-    idx_y = np.where(label == 1)[1]
-
-    masked_label = torch.Tensor(label[idx_x, idx_y]).type(torch.int32)
-    masked_output = torch.Tensor(output[idx_x, idx_y])
-
-    return masked_output, masked_label
