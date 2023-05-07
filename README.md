@@ -1,7 +1,7 @@
 # General concept
 
 ## **Abstract**
-An application designed to help diagnose various medical conditions.
+An application designed to help diagnose various medical conditions based on images/scans.
 
 ## **Repository structure**
 - config  # (configurations of training and model parameters per model)
@@ -49,5 +49,8 @@ then it will be possible to import the package:
 ```python
 import diagnosisai
 ```
+
+# Types of diagnosis supported
+At the moment, only data in the form of images is supported, which is converted to tensors and also stored in tensors thanks to the pickle module.
 
 
