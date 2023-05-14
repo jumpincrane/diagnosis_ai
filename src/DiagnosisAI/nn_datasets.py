@@ -79,6 +79,7 @@ class BrainDataset(Dataset):
 class ChestDataset(Dataset):
     """
     Dataset folder should contain images splitted in subdirectiories, each subdirectory is a class.
+    Files should be black and white x-ray scans of the lungs.
     """
 
     def __init__(self, dataset_dir: str, resize_shape: tuple[int, int] = (224, 224)):
@@ -86,6 +87,7 @@ class ChestDataset(Dataset):
         self.dataset_dir = Path(dataset_dir)
         self._classes_dirs = [case_dir for case_dir in self.dataset_dir.iterdir()]
         self.classes_info = {class_name.name: label for label, class_name in enumerate(self._classes_dirs)}
+        
         self._all_files = [(img_path, class_dir.name) for class_dir in self._classes_dirs
                            for img_path in class_dir.iterdir()]
 
