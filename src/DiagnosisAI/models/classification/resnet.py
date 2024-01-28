@@ -53,6 +53,7 @@ class ResNet(nn.Module):
         self.avg_pool = _choose_avg_pool(mode)
         self.fc = nn.Linear(self.resnet.output_features, num_classes)
         self.activ_func = _choose_activ_func(activ_func_mode)
+        self.num_classes = num_classes
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.resnet(x)
@@ -62,3 +63,9 @@ class ResNet(nn.Module):
         x = self.activ_func(x)
 
         return x
+    
+    def step(self, inputs: torch.Tensor, labels: torch.Tensor, loss_func: nn.Module) -> tuple[torch.Tensor]:
+        outputs = self.forward(inputs)
+        loss = loss_func(outputs, labels)
+
+        return outputs, loss
