@@ -1,1 +1,2 @@
 from diagnosisai.pipelines.classification_pipe import ClassificationPipeline
+from diagnosisai.pipelines.segmentation_pipe import SegmentationPipeline

@@ -62,6 +62,7 @@ class _Decoder(nn.Module):
 
 
 class UNet(nn.Module):
+    # TODO: some problems with padding and 3D
     """
     UNet model with skip connections with encoder based on ResNet architecture.
 
@@ -73,6 +74,9 @@ class UNet(nn.Module):
     def __init__(self, in_channels: int = 4, out_channels=1, mode: str = "2D", resnet_model: int = 34):
 
         super(UNet, self).__init__()
+
+        self.out_channels = out_channels
+        self.in_channels = in_channels
 
         self.enc = resnet_encoder(resnet_model, in_channels, mode, return_all_layers=True)
         self.dec = _Decoder(mode=mode)
@@ -88,3 +92,10 @@ class UNet(nn.Module):
         output = self.id2(output)
 
         return output
+    
+    def step(self, inputs: torch.Tensor, labels: torch.Tensor, loss_func: nn.Module) -> tuple[torch.Tensor]:
+        outputs = self.forward(inputs)
+
+        loss = loss_func(outputs, labels)
+
+        return outputs, loss
