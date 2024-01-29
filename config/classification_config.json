@@ -1,0 +1,29 @@
+{
+    "ResNet": {
+        "train_params": {
+            "optimizer": "AdamW",
+            "optimizer_params": {
+                "lr": 0.001
+            },
+            "loss_func": "CrossEntropyLoss",
+            "loss_params": {},
+            "scheduler": "Exponential",
+            "scheduler_params": {
+                "gamma": 1.0
+            },
+            "batch_size": 16,
+            "num_workers": 0,
+            "epochs": 10,
+            "save_freq_epoch": 10,
+            "save_folder_path": "./resnet_classification/",
+            "epoch_patience": 40
+        },
+        "model_params": {
+            "num_classes": 3,
+            "resnet_depth": 34,
+            "in_channels": 1,
+            "mode": "2D",
+            "activ_func_mode": "softmax"
+        }
+    }
+}

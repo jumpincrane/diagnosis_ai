@@ -7,11 +7,11 @@ __pycache__/
 *.so
 *.ckpt
 
-
+# My dirs
+_temp/
 
 # Distribution / packaging
 .Python
-config/
 build/
 develop-eggs/
 dist/
@@ -156,6 +156,10 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 lightning_logs/
+
+#MacOS
+.DS_Store
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
