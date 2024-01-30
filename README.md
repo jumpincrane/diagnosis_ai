@@ -43,7 +43,7 @@ There will be two main branches - `main` and `dev`. If you add new functionality
 # Local environement and install
 To install the package locally, go to the repository folder (where `setup.py` is) and type the following command:
 ```bash
-pip install -e .
+pip install .
 ```
 then it will be possible to import the package:
 ```python
