@@ -24,7 +24,6 @@ class BrainDataset(Dataset):
     :param bool only_the_largest_slice: extract only planes where tumor is the largest,
     :param bool binary_seg: if binary_seg is passed all labels are concatenate to one class.
     """
-
     def __init__(self,
                  dataset_dir: str,
                  to_scale_size: Optional[tuple[int]] = None,
@@ -87,11 +86,15 @@ class BrainDataset(Dataset):
 
 class ChestDataset(Dataset):
     """
-    Dataset folder should contain images splitted in subdirectiories, each subdirectory is a class.
+    Dataset folder should contains images splitted in subdirectiories, each subdirectory is a class.
     Files should be black and white x-ray scans of the lungs.
+
+    :param str dataset_dir: The directory containing the dataset.
+    :param tuple[int, int] resize_shape: A tuple specifying the desired shape for resizing images.
+            Defaults to (224, 224).
     """
 
-    def __init__(self, dataset_dir: str, resize_shape: tuple[int, int] = (224, 224)):
+    def __init__(self, dataset_dir: str, resize_shape: tuple[int] = (224, 224)):
 
         self.dataset_dir = Path(dataset_dir)
         self._classes_dirs = [case_dir for case_dir in self.dataset_dir.iterdir()]
