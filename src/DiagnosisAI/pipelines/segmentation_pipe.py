@@ -74,7 +74,7 @@ class BasicSegmentationPipeline(ABC):
 
         return optimizer
 
-    def _select_scheduler(self, scheduler_name: str, scheduler_params: dict[str, Any]) -> LRScheduler   :
+    def _select_scheduler(self, scheduler_name: str, scheduler_params: dict[str, Any]) -> LRScheduler:
         try:
             scheduler = SCHEDULERS[scheduler_name](self.optim, **scheduler_params)
         except KeyError:
@@ -98,27 +98,31 @@ class SegmentationPipeline(BasicSegmentationPipeline):
     """
     Segmentation Pipeline based on a specified configuration.
 
-    :param str config_path: Path to the configuration file.
-    :param str config_name: Name of the configuration (default is "UNet").
+    :param Optional[str] config_path: Path to the configuration file.
+    :param Optional[str] config_name: Name of the configuration (default is "UNet").
     :param Optional[str] model_path: Path to the pre-trained model file (default is None).
     """
-    def __init__(self, config_path: str, config_name: str = "UNet", model_path: Optional[str] = None) -> None:
-        super().__init__(config_path, config_name)
+
+    def __init__(self, config_path: Optional[str] = None, config_name: Optional[str] = "UNet", model_path: Optional[str] = None) -> None:
 
         if model_path:
+            self.fitted = True
             with open(model_path, 'rb') as f:
                 self.model = torch.load(f)
         else:
+            super().__init__(config_path, config_name)
+
+            self.fitted = False
+
             self.model = UNet(**self.model_params)
 
-        self.loss_func = self._select_loss_func(loss_func_name=self.train_params['loss_func'],
-                                                loss_func_params=self.train_params['loss_params'])
-        self.optim = self._select_optimizer(optimizer_name=self.train_params['optimizer'],
-                                            optimizer_params=self.train_params['optimizer_params'])
-        self.scheduler = self._select_scheduler(scheduler_name=self.train_params['scheduler'],
-                                                scheduler_params=self.train_params['scheduler_params'])
-
-        self.early_stopper = DefaultEarlyStopper(patience=self.train_params["epoch_patience"])
+            self.loss_func = self._select_loss_func(loss_func_name=self.train_params['loss_func'],
+                                                    loss_func_params=self.train_params['loss_params'])
+            self.optim = self._select_optimizer(optimizer_name=self.train_params['optimizer'],
+                                                optimizer_params=self.train_params['optimizer_params'])
+            self.scheduler = self._select_scheduler(scheduler_name=self.train_params['scheduler'],
+                                                    scheduler_params=self.train_params['scheduler_params'])
+            self.early_stopper = DefaultEarlyStopper(patience=self.train_params["epoch_patience"])
 
     def fit(self, train_data: Dataset, val_data: Dataset):
         """
@@ -127,8 +131,16 @@ class SegmentationPipeline(BasicSegmentationPipeline):
         :param Dataset train_data: Training data.
         :param Dataset val_data: Validation data.
         """
-        self._training_loop(train_data, val_data, self.train_params, self.model,
-                            self.loss_func, self.optim, self.early_stopper, self.scheduler)
+        if self.fitted:
+            raise RuntimeError("Model is already loaded from given path. If you want to train/fit model don't pass model path")
+
+        try:
+            self._training_loop(train_data, val_data, self.train_params, self.model,
+                                self.loss_func, self.optim, self.early_stopper, self.scheduler)
+        except KeyboardInterrupt:
+            self.fitted = True
+        else:
+            self.fitted = True
 
     def predict(self, test_data: Dataset, batch_size: int = 16) -> tuple[torch.Tensor, dict[str, float]]:
         """
@@ -136,6 +148,7 @@ class SegmentationPipeline(BasicSegmentationPipeline):
 
         :param Dataset test_data: Test data.
         """
+
         test_dl = DataLoader(test_data, batch_size=batch_size, shuffle=False)
         accecelator = Accelerator()
 
@@ -170,12 +183,12 @@ class SegmentationPipeline(BasicSegmentationPipeline):
                 all_preds,
                 torch.concatenate(all_gts),
                 task=metrics_mode, num_classes=model.out_channels).item()
-            
+
         return all_preds, running_metrics
 
     def _training_loop(
-            self, train_data: Dataset, val_data: Dataset, train_params: dict[str, Any], model: UNet, loss_func: nn.Module, optimizer, early_stopper,
-            scheduler):
+            self, train_data: Dataset, val_data: Dataset, train_params: dict[str, Any],
+            model: UNet, loss_func: nn.Module, optimizer, early_stopper, scheduler):
 
         train_dl = DataLoader(train_data, train_params['batch_size'], shuffle=True,
                               num_workers=train_params['num_workers'])

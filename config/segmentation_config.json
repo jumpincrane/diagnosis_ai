@@ -3,7 +3,7 @@
         "train_params": {
             "optimizer": "AdamW",
             "optimizer_params": {
-                "lr": 0.001
+                "lr": 0.0001
             },
             "loss_func": "CrossEntropyLoss",
             "loss_params": {},
@@ -13,9 +13,9 @@
             },
             "batch_size": 16,
             "num_workers": 0,
-            "epochs": 10,
-            "save_freq_epoch": 10,
-            "save_folder_path": "./unet_segmentation/",
+            "epochs": 30,
+            "save_freq_epoch": 5,
+            "save_folder_path": "./unet_segmentation_2D_Semantic_34_resnet/",
             "epoch_patience": 40
         },
         "model_params": {
@@ -29,7 +29,7 @@
         "train_params": {
             "optimizer": "AdamW",
             "optimizer_params": {
-                "lr": 0.001
+                "lr": 0.0001
             },
             "loss_func": "BCEWithLogistLoss",
             "loss_params": {},
@@ -39,9 +39,9 @@
             },
             "batch_size": 16,
             "num_workers": 0,
-            "epochs": 10,
-            "save_freq_epoch": 10,
-            "save_folder_path": "./unet_segmentation/",
+            "epochs": 30,
+            "save_freq_epoch": 5,
+            "save_folder_path": "./unet_segmentation_34_resnet/",
             "epoch_patience": 40
         },
         "model_params": {
